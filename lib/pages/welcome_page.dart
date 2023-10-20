@@ -1,9 +1,15 @@
+import 'package:bmicalculator/database/dao/bmi_dao.dart';
 import 'package:flutter/material.dart';
 
 import 'data_page.dart';
 
 class WelcomePage extends StatefulWidget {
-  const WelcomePage({super.key});
+  const WelcomePage({
+    super.key,
+    required this.bmiDao,
+  });
+
+  final BmiDao bmiDao;
 
   @override
   State<WelcomePage> createState() => _WelcomePageState();
@@ -48,7 +54,6 @@ class _WelcomePageState extends State<WelcomePage> {
                 const SizedBox(
                   height: 100,
                 ),
-                
                 Row(
                   children: [
                     Expanded(
@@ -60,10 +65,12 @@ class _WelcomePageState extends State<WelcomePage> {
                       child: TextButton(
                         onPressed: () {
                           Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (BuildContext bc) =>
-                                      const DataPage()));
+                            context,
+                            MaterialPageRoute(
+                              builder: (BuildContext bc) =>
+                                  DataPage(bmiDao: widget.bmiDao),
+                            ),
+                          );
                         },
                         style: ButtonStyle(
                           shape: MaterialStateProperty.all(

@@ -1,10 +1,16 @@
+import 'package:bmicalculator/database/dao/bmi_dao.dart';
 import 'package:bmicalculator/repository/bmi_repository.dart';
 import 'package:flutter/material.dart';
 
 import '../model/bmi_model.dart';
 
 class DataPage extends StatefulWidget {
-  const DataPage({super.key});
+  const DataPage({
+    super.key,
+    required this.bmiDao,
+  });
+
+  final BmiDao bmiDao;
 
   @override
   State<DataPage> createState() => _DataPageState();
@@ -15,7 +21,23 @@ class _DataPageState extends State<DataPage> {
   var weightController = TextEditingController();
   var heightController = TextEditingController();
 
-  var bmiRepository = BMIRepository();
+  late BMIRepository bmiRepository;
+
+  @override
+  void initState() {
+    bmiRepository = BMIRepository(
+      bmiDao: widget.bmiDao,
+    );
+    super.initState();
+  }
+
+  Future<void> insertBmi({required BMI bmi}) async {
+    await bmiRepository.add(bmi);
+  }
+
+  Future<List<BMI>> fetchAllBMIList() async {
+    return await bmiRepository.getList();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -95,18 +117,18 @@ class _DataPageState extends State<DataPage> {
 
                         FocusManager.instance.primaryFocus?.unfocus();
 
-                        setState(() {
-                          bmiRepository.add(
-                            BMI(
-                              nameController.text,
-                              double.parse(weightController.text),
-                              double.parse(heightController.text),
-                            ),
-                          );
-
-                          nameController.clear();
-                          weightController.clear();
-                          heightController.clear();
+                        insertBmi(
+                          bmi: BMI(
+                            nameController.text,
+                            double.tryParse(weightController.text) ?? 0.0,
+                            double.tryParse(heightController.text) ?? 0.0,
+                          ),
+                        ).then((value) {
+                          setState(() {
+                            nameController.clear();
+                            weightController.clear();
+                            heightController.clear();
+                          });
                         });
                       },
                       style: ButtonStyle(
@@ -190,18 +212,32 @@ class _DataPageState extends State<DataPage> {
               SizedBox(
                 height: 10,
               ),
-              ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: bmiRepository.count,
-                itemBuilder: (context, index) {
-                  final BMI element = bmiRepository.getBMIByIndex(index);
-                  return ListTile(
-                    title: Text("Usuário: ${element.name}",),
-                    subtitle: Text("IMC: ${element.bmiTable()}", style: TextStyle(color: Colors.purple),),
-                  );
-                },
-              ),
+              FutureBuilder<List<BMI>>(
+                  future: fetchAllBMIList(),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData &&
+                        snapshot.connectionState == ConnectionState.done) {
+                      return ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: snapshot.data!.length,
+                        itemBuilder: (context, index) {
+                          final BMI element = snapshot.data![index];
+                          return ListTile(
+                            title: Text(
+                              "Usuário: ${element.name}",
+                            ),
+                            subtitle: Text(
+                              "IMC: ${element.bmiTable()}",
+                              style: TextStyle(color: Colors.purple),
+                            ),
+                          );
+                        },
+                      );
+                    } else {
+                      return const SizedBox();
+                    }
+                  }),
             ],
           ),
         ),
